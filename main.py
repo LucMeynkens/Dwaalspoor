@@ -1,1 +1,1 @@
-# hier komt de hoofdcode
+# applicatie starten
