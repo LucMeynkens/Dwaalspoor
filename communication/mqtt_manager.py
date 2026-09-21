@@ -1,14 +1,20 @@
-# communication/mqtt_manager.py
-
 import paho.mqtt.client as mqtt
 
 
 class MQTTManager:
 
-    def __init__(self, broker="localhost", port=1883):
+    # ========================================================
+    # DWAALSPOOR MQTT CONFIGURATIE
+    # ========================================================
 
-        self.broker = broker
-        self.port = port
+    BROKER = "192.168.1.50"
+    PORT = 1883
+
+    # ========================================================
+    # INITIALISATIE
+    # ========================================================
+
+    def __init__(self):
 
         self.client = mqtt.Client(
             mqtt.CallbackAPIVersion.VERSION2
@@ -18,24 +24,27 @@ class MQTTManager:
 
         self.client.on_message = self._on_message
 
-    # --------------------------------------------------------
-    # Verbinden met MQTT-broker
-    # --------------------------------------------------------
+    # ========================================================
+    # VERBINDEN
+    # ========================================================
 
     def connect(self):
 
-        print(f"Verbinden met MQTT-broker {self.broker}:{self.port}")
+        print(
+            f"Verbinden met MQTT-broker "
+            f"{self.BROKER}:{self.PORT}"
+        )
 
         self.client.connect(
-            self.broker,
-            self.port
+            self.BROKER,
+            self.PORT
         )
 
         print("MQTT verbonden.")
 
-    # --------------------------------------------------------
-    # Bericht publiceren
-    # --------------------------------------------------------
+    # ========================================================
+    # BERICHT PUBLICEREN
+    # ========================================================
 
     def publish(self, topic, message):
 
@@ -46,9 +55,9 @@ class MQTTManager:
             message
         )
 
-    # --------------------------------------------------------
-    # Abonneren op een topic
-    # --------------------------------------------------------
+    # ========================================================
+    # ABONNEREN
+    # ========================================================
 
     def subscribe(self, topic, callback):
 
@@ -60,11 +69,16 @@ class MQTTManager:
             (topic, callback)
         )
 
-    # --------------------------------------------------------
-    # Ontvangen MQTT-bericht verwerken
-    # --------------------------------------------------------
+    # ========================================================
+    # BERICHT ONTVANGEN
+    # ========================================================
 
-    def _on_message(self, client, userdata, message):
+    def _on_message(
+        self,
+        client,
+        userdata,
+        message
+    ):
 
         for topic, callback in self.callbacks:
 
@@ -79,9 +93,9 @@ class MQTTManager:
                     message
                 )
 
-    # --------------------------------------------------------
-    # MQTT-lus starten
-    # --------------------------------------------------------
+    # ========================================================
+    # MQTT-LUS
+    # ========================================================
 
     def loop_forever(self):
 
