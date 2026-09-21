@@ -12,3 +12,22 @@ class DecisionEngine:
 
         # 's Nachts en persoon beweegt
         return "OPVOLGEN"
+
+#Later kunnen we die uitbreiden naar bijvoorbeeld:
+#GEEN_ACTIE
+#    │
+#    ├── overdag
+#    │
+#    └── geen beweging
+
+#OPVOLGEN
+#    │
+#    └── nacht + beweging
+
+#AANDACHT
+#    │
+#    └── meerdere zones kort na elkaar
+
+#INTERVENTIE
+#    │
+#    └── richting uitgang + nacht
