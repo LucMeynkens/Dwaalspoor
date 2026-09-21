@@ -1,0 +1,64 @@
+Hoe loopt een bericht nu door het systeem?
+
+Stel sensor01 stuurt:
+
+{
+    "device": "sensor01",
+    "type": "presence",
+    "zone": "gang_01",
+    "value": true,
+    "timestamp": "2026-09-21T23:15:00"
+}
+
+Dan gebeurt:
+
+sensor01
+   │
+   │ MQTT
+   ▼
+DwaalSpoorCore
+   │
+   ├── JSON lezen
+   │
+   ├── Zone bijwerken
+   │
+   ├── Person bijwerken
+   │
+   ├── Context bijwerken
+   │
+   ▼
+DecisionEngine
+   │
+   ├── beweging?
+   │
+   ├── nacht?
+   │
+   ▼
+"OPVOLGEN"
+   │
+   ▼
+DwaalSpoorCore
+   │
+   │ MQTT
+   ▼
+actuator01
+   │
+   ▼
+💡 LICHT AAN
+
+Eén belangrijk punt
+
+Er zit nu nog een vereenvoudiging in: we gebruiken voorlopig:
+person_id = "persoon01"
+
+Dat is bewust. Voor het eerste prototype hoeven de leerlingen nog niet meteen het probleem van meerdere personen tegelijkertijd op te lossen.
+
+De architectuur is er echter al op voorbereid:
+self.personen = {}
+
+Later kunnen we bijvoorbeeld krijgen:
+persoon01 → gang_01 → kamer_02
+persoon02 → gang_03 → woonkamer
+
+En dan wordt de volgende interessante stap voor het project de combinatie:
+sensor → persoon → zone → beweging → context → DecisionEngine → actuator/AI.
