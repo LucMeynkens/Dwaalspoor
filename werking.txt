@@ -62,3 +62,5 @@ persoon02 → gang_03 → woonkamer
 
 En dan wordt de volgende interessante stap voor het project de combinatie:
 sensor → persoon → zone → beweging → context → DecisionEngine → actuator/AI.
+
+test
