@@ -122,13 +122,15 @@ class DwaalSpoorCore:
             )
 
             # ------------------------------------------------
-            # CONTEXT VERWERKEN
+            # CONTEXT ALLEEN VERWERKEN BIJ AANWEZIGHEID
             # ------------------------------------------------
 
-            self.verwerk_context(
-                zone_naam,
-                timestamp
-            )
+            if aanwezig is True:
+
+                self.verwerk_context(
+                    zone_naam,
+                    timestamp
+                )
 
         except json.JSONDecodeError:
 
@@ -349,3 +351,4 @@ class DwaalSpoorCore:
         print(
             f"Zone    : {zone}"
         )
+
