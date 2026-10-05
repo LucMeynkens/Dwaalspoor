@@ -15,8 +15,8 @@ Een overzicht van de belangrijkste en meest gebruikte Git-commando's voor dageli
 
 ## 🌿 Werken met Branches (Vertakkingen)
 * **`git branch`** – Toont een lijst van alle lokale branches.
-* **`git checkout -b <branch-naam>`** – Maakt een **nieuwe** branch aan en schakelt hier direct naar over.
-* **`git checkout <branch-naam>`** – Schakelt over naar een **bestaande** branch.
+* **`git switch -c <branch-naam>`** – Maakt een **nieuwe** branch aan en schakelt hier direct naar over.
+* **`git switch <branch-naam>`** – Schakelt over naar een **bestaande** branch.
 * **`git merge <branch-naam>`** – Voegt de wijzigingen van een andere branch samen met je huidige branch.
 
 ## 🔍 Historie & Ongedaan Maken
