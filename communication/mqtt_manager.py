@@ -87,11 +87,17 @@ class MQTTManager:
                 message.topic
             ):
 
-                callback(
-                    client,
-                    userdata,
-                    message
-                )
+                try:
+                    callback(
+                        client,
+                        userdata,
+                        message
+                    )
+                except Exception as error:
+                    print(
+                        f"Fout bij verwerken MQTT-bericht op topic "
+                        f"'{message.topic}' (subscription '{topic}'): {error!r}"
+                    )
 
     # ========================================================
     # MQTT-LUS
