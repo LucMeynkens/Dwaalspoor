@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 
 from communication.topics import (
     ALL_SENSOR_PRESENCE,
@@ -30,6 +31,9 @@ class DwaalSpoorCore:
 
         self.decision_engine = DecisionEngine()
 
+        self._presence_callback_registered = False
+        self._position_callback_registered = False
+
     # ========================================================
     # STARTEN
     # ========================================================
@@ -39,16 +43,20 @@ class DwaalSpoorCore:
         print("DwaalSpoor Core gestart.")
 
         # Sensoren die aanwezigheid melden
-        self.mqtt.subscribe(
-            ALL_SENSOR_PRESENCE,
-            self.on_presence
-        )
+        if not self._presence_callback_registered:
+            self.mqtt.subscribe(
+                ALL_SENSOR_PRESENCE,
+                self.on_presence
+            )
+            self._presence_callback_registered = True
 
         # Sensoren die positie melden
-        self.mqtt.subscribe(
-            ALL_SENSOR_POSITION,
-            self.on_position
-        )
+        if not self._position_callback_registered:
+            self.mqtt.subscribe(
+                ALL_SENSOR_POSITION,
+                self.on_position
+            )
+            self._position_callback_registered = True
 
     # ========================================================
     # AANWEZIGHEID ONTVANGEN
@@ -61,80 +69,77 @@ class DwaalSpoorCore:
         message
     ):
 
-        try:
+        data = self._validated_mqtt_data(
+            message,
+            "presence"
+        )
 
-            data = json.loads(
-                message.payload.decode()
+        if data is None:
+            return
+
+        print()
+        print("================================")
+        print("CORE - AANWEZIGHEID")
+        print("================================")
+
+        print(data)
+
+        # ------------------------------------------------
+        # DATA UIT MQTT-BERICHT HALEN
+        # ------------------------------------------------
+
+        sensor = data.get("device")
+        zone_naam = data.get("zone")
+        aanwezig = data.get("value")
+        timestamp = data.get("timestamp")
+
+        # ------------------------------------------------
+        # ZONE AANMAKEN ALS DIE NOG NIET BESTAAT
+        # ------------------------------------------------
+
+        if zone_naam not in self.zones:
+
+            self.zones[zone_naam] = Zone(
+                zone_naam
             )
 
-            print()
-            print("================================")
-            print("CORE - AANWEZIGHEID")
-            print("================================")
+        zone = self.zones[zone_naam]
 
-            print(data)
+        # ------------------------------------------------
+        # ZONE BIJWERKEN
+        # ------------------------------------------------
 
-            # ------------------------------------------------
-            # DATA UIT MQTT-BERICHT HALEN
-            # ------------------------------------------------
+        zone.update_presence(
+            sensor,
+            aanwezig,
+            timestamp
+        )
 
-            sensor = data.get("device")
-            zone_naam = data.get("zone")
-            aanwezig = data.get("value")
-            timestamp = data.get("timestamp")
+        print(
+            f"Sensor      : {sensor}"
+        )
 
-            # ------------------------------------------------
-            # ZONE AANMAKEN ALS DIE NOG NIET BESTAAT
-            # ------------------------------------------------
+        print(
+            f"Zone        : {zone_naam}"
+        )
 
-            if zone_naam not in self.zones:
+        print(
+            f"Aanwezig    : {aanwezig}"
+        )
 
-                self.zones[zone_naam] = Zone(
-                    zone_naam
-                )
+        print(
+            f"Tijdstip    : {timestamp}"
+        )
 
-            zone = self.zones[zone_naam]
+        # ------------------------------------------------
+        # CONTEXT ALLEEN VERWERKEN BIJ AANWEZIGHEID
+        # ------------------------------------------------
 
-            # ------------------------------------------------
-            # ZONE BIJWERKEN
-            # ------------------------------------------------
-
-            zone.update_presence(
-                sensor,
-                aanwezig,
-                timestamp
-            )
-
-            print(
-                f"Sensor      : {sensor}"
-            )
-
-            print(
-                f"Zone        : {zone_naam}"
-            )
-
-            print(
-                f"Aanwezig    : {aanwezig}"
-            )
-
-            print(
-                f"Tijdstip    : {timestamp}"
-            )
-
-            # ------------------------------------------------
-            # CONTEXT VERWERKEN
-            # ------------------------------------------------
+        if aanwezig is True:
 
             self.verwerk_context(
                 zone_naam,
                 timestamp
-            )
-
-        except json.JSONDecodeError:
-
-            print(
-                "Fout: ontvangen bericht "
-                "is geen geldige JSON."
             )
 
     # ========================================================
@@ -148,49 +153,150 @@ class DwaalSpoorCore:
         message
     ):
 
+        data = self._validated_mqtt_data(
+            message,
+            "position"
+        )
+
+        if data is None:
+            return
+
+        print()
+        print("================================")
+        print("CORE - POSITIE")
+        print("================================")
+
+        print(data)
+
+        sensor = data.get("device")
+        zone = data.get("zone")
+
+        x = data.get("x")
+        y = data.get("y")
+
+        timestamp = data.get("timestamp")
+
+        print(
+            f"Sensor      : {sensor}"
+        )
+
+        print(
+            f"Zone        : {zone}"
+        )
+
+        print(
+            f"Positie     : x={x}, y={y}"
+        )
+
+        print(
+            f"Tijdstip    : {timestamp}"
+        )
+
+
+    # ========================================================
+    # MQTT-INPUT VALIDEREN
+    # ========================================================
+
+    @staticmethod
+    def _validated_mqtt_data(message, expected_type):
+
+        def reject_json_constant(value):
+            raise ValueError(
+                f"Invalid JSON constant: {value}"
+            )
+
         try:
-
             data = json.loads(
-                message.payload.decode()
+                message.payload.decode(),
+                parse_constant=reject_json_constant
             )
-
-            print()
-            print("================================")
-            print("CORE - POSITIE")
-            print("================================")
-
-            print(data)
-
-            sensor = data.get("device")
-            zone = data.get("zone")
-
-            x = data.get("x")
-            y = data.get("y")
-
-            timestamp = data.get("timestamp")
-
+        except (ValueError, UnicodeDecodeError):
             print(
-                f"Sensor      : {sensor}"
+                f"Invalid MQTT {expected_type} message: invalid JSON."
             )
+            return None
 
+        if not isinstance(data, dict):
             print(
-                f"Zone        : {zone}"
+                f"Invalid MQTT {expected_type} message: expected a JSON object."
             )
+            return None
 
+        required_fields = [
+            "device",
+            "type",
+            "zone",
+            "timestamp"
+        ]
+        if expected_type == "presence":
+            required_fields.append("value")
+        else:
+            required_fields.extend(("x", "y"))
+
+        for field in required_fields:
+            if field not in data:
+                print(
+                    f"Invalid MQTT {expected_type} message: "
+                    f"missing field '{field}'."
+                )
+                return None
+
+        for field in ("device", "zone"):
+            if not isinstance(data[field], str) or not data[field].strip():
+                print(
+                    f"Invalid MQTT {expected_type} message: "
+                    f"field '{field}' must be a non-empty string."
+                )
+                return None
+
+        if data["type"] != expected_type:
             print(
-                f"Positie     : x={x}, y={y}"
+                f"Invalid MQTT {expected_type} message: "
+                f"field 'type' must be '{expected_type}'."
             )
+            return None
 
+        if expected_type == "presence":
+            if type(data["value"]) is not bool:
+                print(
+                    "Invalid MQTT presence message: "
+                    "field 'value' must be a JSON boolean."
+                )
+                return None
+        else:
+            for field in ("x", "y"):
+                if isinstance(data[field], bool) or not isinstance(
+                    data[field], (int, float)
+                ):
+                    print(
+                        f"Invalid MQTT position message: "
+                        f"field '{field}' must be numeric."
+                    )
+                    return None
+
+        timestamp = data["timestamp"]
+        if (
+            not isinstance(timestamp, str)
+            or not any(separator in timestamp for separator in ("T", "t", " "))
+        ):
             print(
-                f"Tijdstip    : {timestamp}"
+                f"Invalid MQTT {expected_type} message: "
+                "field 'timestamp' must be an ISO-8601 datetime."
             )
+            return None
 
-        except json.JSONDecodeError:
-
+        try:
+            datetime.fromisoformat(
+                timestamp.replace("Z", "+00:00")
+            )
+        except ValueError:
             print(
-                "Fout: ontvangen bericht "
-                "is geen geldige JSON."
+                f"Invalid MQTT {expected_type} message: "
+                "field 'timestamp' must be an ISO-8601 datetime."
             )
+            return None
+
+        return data
 
     # ========================================================
     # CONTEXT VERWERKEN
@@ -349,3 +455,4 @@ class DwaalSpoorCore:
         print(
             f"Zone    : {zone}"
         )
+
